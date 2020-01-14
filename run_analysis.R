@@ -72,6 +72,6 @@ fullset.means.stds <-
 grp_summary <-
         fullset.means.stds %>% group_by(Subject_ID, activity) %>% summarise_all(mean)
 
-#write to drive (optional)
+#write to drive
 # write.csv(fullset.means.stds,"full_means_stds.csv")
-# write.csv(grp_summary,"Grouped_Summaries.csv")
+write.table(grp_summary,"Grouped_Summaries.txt",row.name=FALSE)
