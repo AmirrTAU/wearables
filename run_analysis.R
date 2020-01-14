@@ -1,85 +1,77 @@
 #packages
-library("dplyr")
+library("dplyr") #used for data transformation
 
-# source the preparation (download + unzip) script - use only if you don't have the files already 
-
+# source the preparation (download + unzip) script 
 source("prepare.R")
 
-#read
-
+#read sets
+## a function for safer reading for this type of data
 readspec <- function(i) read.table(i,header = F, stringsAsFactors = F)
 
+##read files common to both sets
+
 activity_labels <- readspec('./UCI HAR Dataset/activity_labels.txt')
-names(activity_labels)<-c("label","activity")
+names(activity_labels) <- c("label", "activity")
 features <- readspec('./UCI HAR Dataset/features.txt')
+
+##read and tidy up each set
+
+### input working subsirectories
 
 dirs <- c("./UCI HAR Dataset/train/", "./UCI HAR Dataset/test/")
 
+### obtain paths to individual files
+
 trainfiles <- list.files(dirs[1])
 testfiles <- list.files(dirs[2])
-trainfilepath <- paste0(dirs[1],trainfiles) 
-testfilepath <- paste0(dirs[2],testfiles) 
+trainfilepath <- paste0(dirs[1], trainfiles)
+testfilepath <- paste0(dirs[2], testfiles) 
 
+### a function that reads each set by its path and tidies it up
 
 readset <- function(setpath){
-
+        
+        # load individual files
         measurements <- readspec(setpath[3])
         activity <- readspec(setpath[4])
         subject <- readspec(setpath[2])
         
-        # label the data set with descriptive variable names
-        names(measurements) <- features[[2]] 
+        # label with descriptive variable names
+        names(measurements) <- features[[2]]
         names(subject) <- "Subject_ID"
         # Use descriptive activity names to name the activities in the data set
         names(activity) <- "label"
-        activity <- full_join(activity,activity_labels, by="label") 
-
-        return(cbind(subject,activity,measurements)[,-2])
+        activity <- full_join(activity, activity_labels, by = "label")
+        
+        return(cbind(subject, activity, measurements)[, -2])
 }
 
 
-# Merge the training and the test sets to create one data set
+### Read and tidy each set 
 
 train <- readset(trainfilepath)
 test <- readset(testfilepath)
-fullset <- bind_rows(train,test)
+
+# Merge the training and the test sets to create one data set
+
+fullset <- bind_rows(train, test)
 
 # Extract only the measurements on the mean and standard deviation for each measurement
 
-extracted <-
-        fullset %>% dplyr::select_at(vars("Subject_ID","activity", contains("mean()"),contains("std()")))
+fullset.means.stds <-
+        fullset %>% dplyr::select_at(vars(
+                "Subject_ID",
+                "activity",
+                contains("mean()"),
+                contains("std()")
+        ))
 
 
-#create a second, independent tidy data set with the average of each variable for each activity and each subject.
+# from the extracted table, create a second, independent tidy data set with the average of each variable for each activity and each subject.
 
-grp_summary <- extracted %>% group_by(Subject_ID,activity) %>% summarise_all(mean)
+grp_summary <-
+        fullset.means.stds %>% group_by(Subject_ID, activity) %>% summarise_all(mean)
 
-write.csv(grp_summary,"Grouped_Summaries.csv")
-
-
-# X_train <- read.table('./UCI HAR Dataset/train/X_train.txt', header = F, stringsAsFactors = F)
-# y_train <- read.table('./UCI HAR Dataset/train/y_train.txt', header = F, stringsAsFactors = F)
-# 
-# subject_train <- read.table('./UCI HAR Dataset/train/subject_train.txt', header = F, stringsAsFactors = F)
-# 
-# activity_labels <- read.table('./UCI HAR Dataset/activity_labels.txt', header = F, stringsAsFactors = F)
-# 
-# features <- read.table('./UCI HAR Dataset/features.txt', header = F, stringsAsFactors = F)
-# 
-# names(X_train) <- features[[2]]
-# names(y_train) <- "label"
-# names(activity_labels)<-c("label","activity")
-# y_train <- full_join(y_train,activity_labels, by="label")
-# 
-# return(cbind(y_train,X_train))
-# }
-# 
-# 
-# t
-# readset <- function(i) read.table(i, header = F, stringsAsFactors = F)
-# trainset <- lapply(trainfilepath,read.table)
-
-
-
-
-# 
+#write to drive (optional)
+# write.csv(fullset.means.stds,"full_means_stds.csv")
+# write.csv(grp_summary,"Grouped_Summaries.csv")
